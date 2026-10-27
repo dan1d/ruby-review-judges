@@ -1,0 +1,14 @@
+# Add these entries to your project's .rubocop.yml after copying
+# lib/rubocop/cop/review/single_use_trivial_method.rb into your repo.
+
+require:
+  - ./lib/rubocop/cop/review/single_use_trivial_method.rb
+
+Review/SingleUseTrivialMethod:
+  Enabled: true
+  Include:
+    - app/**/*.rb
+    - lib/**/*.rb
+  # No Exclude: list here on purpose — pre-existing offenses are
+  # grandfathered by CI's diff-scoped check (bin/rubocop_diff_check),
+  # not by file. See the README section "Why diff-scoped".

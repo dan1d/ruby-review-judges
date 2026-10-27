@@ -1,0 +1,103 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Diff-scoped RuboCop check for cops whose pre-existing debt is grandfathered
+# by scope (only this PR's changed lines count), instead of a .rubocop.yml
+# Exclude list.
+#
+# RuboCop itself is never told to ignore anything — it still scans whole
+# files and reports every offense it finds, exactly as always. This script
+# runs *after* that, and throws out any offense whose line isn't inside a
+# range this PR's diff actually changed, before deciding whether to fail.
+# This is the same diff-scoping logic the review skill's Phase A documents
+# (skills/_shared/code-review-phases/phase-a-rubocop-loop.md) — reimplemented
+# here without an LLM, so it runs unconditionally in CI rather than only when
+# a developer invokes the skill.
+#
+# Usage:
+#   bin/rubocop_diff_check [--cops=Cop1,Cop2] [--base=<git ref>]
+#
+# Defaults: --cops=Review/SingleUseTrivialMethod, --base=origin/<default branch>
+# (detected from origin/HEAD, falling back to origin/main, then origin/master;
+# override with RUBOCOP_DIFF_BASE or --base).
+#
+# Exit 0 if no in-scope offenses; exit 1 (and print them) otherwise.
+
+require "json"
+require "optparse"
+require "shellwords"
+
+def default_base
+  head = `git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null`.strip
+  return head unless head.empty?
+
+  %w[origin/main origin/master].find { |ref| system("git rev-parse --verify --quiet #{ref} >/dev/null") } || "origin/main"
+end
+
+options = { cops: ["Review/SingleUseTrivialMethod"], base: ENV["RUBOCOP_DIFF_BASE"] || default_base }
+OptionParser.new do |opts|
+  opts.on("--cops=COPS", "Comma-separated cop names to check (default: Review/SingleUseTrivialMethod)") do |v|
+    options[:cops] = v.split(",")
+  end
+  opts.on("--base=BASE", "Git ref to diff against (default: origin/<default branch>)") { |v| options[:base] = v }
+end.parse!
+
+def changed_ruby_files(base)
+  `git diff --name-only --diff-filter=ACMR #{Shellwords.escape(base)}...HEAD -- '*.rb'`.split("\n")
+end
+
+# Parses `@@ -a,b +c,d @@` hunk headers from a no-context diff into the
+# line ranges this PR actually added/changed in the *new* file version.
+def changed_line_ranges(base, file)
+  diff = `git diff -U0 #{Shellwords.escape(base)}...HEAD -- #{Shellwords.escape(file)}`
+  ranges = []
+
+  diff.each_line do |line|
+    next unless (m = line.match(/\A@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/))
+
+    start_line = m[1].to_i
+    span = m[2] ? m[2].to_i : 1
+    next if span.zero? # pure deletion — no new lines to check
+
+    ranges << (start_line...(start_line + span))
+  end
+
+  ranges
+end
+
+def in_scope?(line, ranges)
+  ranges.any? { |r| r.cover?(line) }
+end
+
+files = changed_ruby_files(options[:base])
+if files.empty?
+  puts "No changed Ruby files against #{options[:base]} — nothing to check."
+  exit 0
+end
+
+cop_args = options[:cops].map { |c| "--only #{Shellwords.escape(c)}" }.join(" ")
+file_args = files.map { |f| Shellwords.escape(f) }.join(" ")
+json = `bundle exec rubocop --force-exclusion --format json #{cop_args} #{file_args}`
+report = JSON.parse(json)
+
+in_scope_offenses = []
+report.fetch("files", []).each do |file_entry|
+  path = file_entry["path"]
+  ranges = changed_line_ranges(options[:base], path)
+
+  file_entry["offenses"].each do |offense|
+    line = offense.dig("location", "line")
+    next unless in_scope?(line, ranges)
+
+    in_scope_offenses << { path: path, line: line, cop: offense["cop_name"], message: offense["message"] }
+  end
+end
+
+if in_scope_offenses.empty?
+  puts "Diff-scoped check clean for #{options[:cops].join(', ')} (#{files.size} file(s) checked against #{options[:base]})."
+  exit 0
+end
+
+puts "Diff-scoped RuboCop check failed — #{in_scope_offenses.size} offense(s) introduced by this PR's own changed lines:"
+in_scope_offenses.each { |o| puts "  #{o[:path]}:#{o[:line]} [#{o[:cop]}] #{o[:message]}" }
+exit 1
