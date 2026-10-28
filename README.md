@@ -42,6 +42,8 @@ commands/
   plan.md                  /plan: three approaches → approach-judge → plan-judge → taste-judge → phases → judges on the diff
 templates/
   CLAUDE.md.snippet        the Approach Rule, to paste or append with --claude-md
+docs/
+  design.md                why the harness looks like this: lessons from live runs, the cop's design changes, open items
 skills/
   ruby-approach-plan/      "plan ENG-123" — three approaches, comparison, pick before coding
   ruby-code-review/        "review this" on local changes
