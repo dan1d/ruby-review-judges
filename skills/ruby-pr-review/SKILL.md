@@ -12,9 +12,9 @@ Load when the request names a specific PR — a PR number (e.g. "PR #1583", "cod
 ## Hard Rules
 - Never operate on the user's current checkout directly. Always resolve or create an isolated git worktree for this specific PR first (see references/pr-setup.md) — this skill must never switch the branch out from under a session that might be doing unrelated work in the main checkout.
 - Always read the PR's existing comments and reviews before analyzing the diff (see references/pr-setup.md) — the goal is context, not exhaustive deduplication: use it to avoid re-raising something already flagged and already being discussed, not to reason about whether something is "already resolved."
-- The shared Phase 0/A/B analysis (references in `../_shared/code-review-phases/`) runs exactly as it does for `ruby-code-review` — do not reimplement or fork its logic here.
+- The shared Phase 0/A/B/C analysis (references in `../_shared/code-review-phases/`) runs exactly as it does for `ruby-code-review` — do not reimplement or fork its logic here.
 - Never post anything to the actual GitHub PR unless the developer's request explicitly asked for it (e.g. "post these as comments," "add this to the PR") — reporting findings back in this session is always the default. See references/pr-posting.md for how posting works when it is requested.
-- Report through the `ReportFindings` tool, same categories as `ruby-code-review` (`general`, `mechanical`, `convention`, `out-of-scope`) — plus note, in prose alongside the tool call, whether anything was actually posted to GitHub or this was report-only.
+- Report through the `ReportFindings` tool, same categories as `ruby-code-review` (`general`, `mechanical`, `convention`, `approach`, `out-of-scope`) — plus note, in prose alongside the tool call, whether anything was actually posted to GitHub or this was report-only.
 
 ## Decision Gates
 | Situation | Action |
@@ -31,8 +31,9 @@ Load when the request names a specific PR — a PR number (e.g. "PR #1583", "cod
 3. Phase 0: general review — ../_shared/code-review-phases/phase-0-general-review.md.
 4. Phase A: mechanical RuboCop loop, diff-scoped, report-only by default — ../_shared/code-review-phases/phase-a-rubocop-loop.md.
 5. Phase B: conventions review — ../_shared/code-review-phases/phase-b-conventions.md.
-6. Report everything in one `ReportFindings` call, most-severe-first.
-7. Only if posting was explicitly requested: post per references/pr-posting.md.
+6. Phase C: approach review — ../_shared/code-review-phases/phase-c-approach.md. Read the PR description's "approaches considered" paragraph first when there is one.
+7. Report everything in one `ReportFindings` call, most-severe-first.
+8. Only if posting was explicitly requested: post per references/pr-posting.md.
 
 ## Output Contract
 Same as `ruby-code-review`'s (see `../ruby-code-review/SKILL.md`) — `category: "general"`/`"mechanical"`/`"convention"`/`"out-of-scope"` — plus an explicit statement of whether findings were posted to GitHub or kept local to this session.
@@ -43,3 +44,4 @@ Same as `ruby-code-review`'s (see `../ruby-code-review/SKILL.md`) — `category:
 - ../_shared/code-review-phases/phase-0-general-review.md
 - ../_shared/code-review-phases/phase-a-rubocop-loop.md
 - ../_shared/code-review-phases/phase-b-conventions.md
+- ../_shared/code-review-phases/phase-c-approach.md

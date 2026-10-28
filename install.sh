@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the three-judge review skills (and optionally the RuboCop cop + CI
+# Install the planning skill and the four-judge review skills (and optionally the RuboCop cop + CI
 # script) into a target Ruby repo.
 #
 # Usage:
@@ -14,8 +14,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -d "$TARGET" ] || { echo "not a directory: $TARGET" >&2; exit 1; }
 
 mkdir -p "$TARGET/.claude/skills"
-cp -R "$HERE/skills/ruby-code-review" "$HERE/skills/ruby-pr-review" "$HERE/skills/_shared" "$TARGET/.claude/skills/"
-echo "installed skills -> $TARGET/.claude/skills/{ruby-code-review,ruby-pr-review,_shared}"
+cp -R "$HERE/skills/ruby-approach-plan" "$HERE/skills/ruby-code-review" "$HERE/skills/ruby-pr-review" "$HERE/skills/_shared" "$TARGET/.claude/skills/"
+echo "installed skills -> $TARGET/.claude/skills/{ruby-approach-plan,ruby-code-review,ruby-pr-review,_shared}"
 
 if [ "$WITH_RUBOCOP" = "--with-rubocop" ]; then
   mkdir -p "$TARGET/lib/rubocop/cop/review" "$TARGET/bin"

@@ -1,10 +1,10 @@
 # ruby-review-judges
 
-A project-agnostic, three-judge code review harness for Ruby repos, packaged as
-[Claude Code](https://claude.com/claude-code) skills plus an optional RuboCop cop and a
-diff-scoped CI script.
+A project-agnostic, four-judge code review harness for Ruby repos, plus a planning skill that
+forces three approaches before any code, packaged as [Claude Code](https://claude.com/claude-code)
+skills with an optional RuboCop cop and a diff-scoped CI script.
 
-Every review runs three independent judges over the **diff only**, then reports all findings in
+Every review runs four independent judges over the **diff only**, then reports all findings in
 one place, most-severe-first. It reports by default and never fixes unless you explicitly ask.
 
 | Judge | Phase | What it checks | How |
@@ -12,19 +12,35 @@ one place, most-severe-first. It reports by default and never fixes unless you e
 | 1 — Correctness | Phase 0 | Bugs, security, obvious reuse/simplification | Delegates to Claude Code's built-in `code-review` skill, scoped to the diff; falls back to an inline pass |
 | 2 — Mechanical | Phase A | RuboCop offenses on the lines the PR touched | `rubocop --format json`, filtered by `git diff -U0` hunk ranges |
 | 3 — Conventions | Phase B | Your team's written conventions + a built-in "needless wrapper method" judgment | Reads your `docs/conventions/*.md` (or wherever they live) fresh on every run |
+| 4 — Approach | Phase C | Did this need to be this big? Climbs the [ponytail](https://github.com/dietrichgebert/ponytail) ladder on the delivered change and reports any materially smaller complete alternative (no new storage, no new class, fewer files, the check in the layer your conventions name) | Reads the surrounding code and your conventions; always reports one `approach` finding, even when the verdict is "smallest complete shape" |
 
 Anything real but outside the diff is reported as `out-of-scope`, never fixed, never dropped.
+
+## Before the code: three approaches, not one
+
+`skills/ruby-approach-plan` runs when you pick up a ticket. It reads the code the change touches,
+then writes at least three materially different approaches — **reuse** (no schema change, the
+columns and helpers you already have), **extend** (additive migration + backfill + later cleanup),
+**restructure** (the blank-page design) — each placed on the ponytail ladder, checked against your
+conventions, with what it cannot do and the first question a reviewer will ask. It recommends the
+lowest complete rung and makes you pick before a line is written.
+
+Why: a real ticket shipped as 22 files with new columns, a service and a backfill, and ended as 5
+files reusing columns the table already had. All three versions worked. Only the last was what the
+reviewer wanted, and it was visible on day one once the alternatives were written down.
 
 ## Contents
 
 ```
 skills/
+  ruby-approach-plan/      "plan ENG-123" — three approaches, comparison, pick before coding
   ruby-code-review/        "review this" on local changes
   ruby-pr-review/          "review PR #123" — isolated worktree, reads existing PR comments, optional posting
   _shared/code-review-phases/
     phase-0-general-review.md
     phase-a-rubocop-loop.md
     phase-b-conventions.md
+    phase-c-approach.md
 rubocop/
   lib/rubocop/cop/review/single_use_trivial_method.rb   custom cop (RuboCop >= 1.x)
   spec/                                                  its spec (13 examples)
@@ -73,6 +89,7 @@ A convention file is just markdown: one heading per rule, the rule, and a **Why*
 
 | Say | Skill |
 |---|---|
+| `plan ENG-123`, `pick up this ticket`, `how should we implement X`, `options for X` | `ruby-approach-plan` |
 | `review this`, `code review`, `check this against our conventions` | `ruby-code-review` |
 | `review PR #123`, `code review https://github.com/o/r/pull/123` | `ruby-pr-review` |
 | `review and fix what you can` | either — fixes are applied only because you said so |

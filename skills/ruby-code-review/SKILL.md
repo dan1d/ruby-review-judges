@@ -1,6 +1,6 @@
 ---
 name: ruby-code-review
-description: "Trigger: review this, code review, check this PR, check against our conventions, team conventions, custom rubocop cops. Runs a three-judge Ruby review — general correctness/security pass, diff-scoped RuboCop offenses, and project conventions from your docs — reporting findings by default, fixing only when explicitly asked."
+description: "Trigger: review this, code review, check this PR, check against our conventions, team conventions, custom rubocop cops. Runs a four-judge Ruby review — general correctness/security pass, diff-scoped RuboCop offenses, project conventions from your docs, and an approach-size check (could the same requirement have been met with materially less?) — reporting findings by default, fixing only when explicitly asked."
 license: MIT
 metadata:
   version: "1.0"
@@ -20,6 +20,7 @@ Load whenever a developer asks for any kind of code review while working in a Ru
 - Bound the fix loop at 3 attempts per file, only when fixes were explicitly requested for in-scope `[auto-fixable]` offenses; on the 3rd unresolved failure, stop looping and report it instead.
 - Report every finding through the `ReportFindings` tool when it is available. If it is not, use the markdown fallback table described in the Output Contract. Never prose-only.
 - Never re-report in Phase B something a RuboCop cop already flagged in Phase A as mechanical.
+- Phase C always runs and always reports one `approach` finding, even when the verdict is "smallest complete shape" — the developer should see that the size of the solution was judged, not only its lines. Phase C never edits.
 
 ## Decision Gates
 | Situation | Action |
@@ -38,10 +39,11 @@ Load whenever a developer asks for any kind of code review while working in a Ru
 2. Phase 0: general review — attempt delegation to the built-in `code-review` skill, falling back to an inline pass if unavailable — full procedure in ../_shared/code-review-phases/phase-0-general-review.md.
 3. Phase A: run the bounded, diff-scoped RuboCop loop — full procedure in ../_shared/code-review-phases/phase-a-rubocop-loop.md.
 4. Phase B: resolve the conventions location, load the applicable docs, and review the diff against them — including its own direct needless-wrapper-method check on every single-caller method, independent of Phase A — full procedure in ../_shared/code-review-phases/phase-b-conventions.md.
-5. Report Phase 0's general findings, Phase A's unresolved offenses, and Phase B's convention findings together in one `ReportFindings` call, most-severe-first.
+5. Phase C: approach review — climb the ladder on the delivered change and decide whether a materially smaller complete approach exists — full procedure in ../_shared/code-review-phases/phase-c-approach.md.
+6. Report Phase 0's general findings, Phase A's unresolved offenses, Phase B's convention findings and Phase C's approach verdict together in one `ReportFindings` call, most-severe-first.
 
 ## Output Contract
-A single `ReportFindings` call covering all phases: `category: "general"` for Phase 0's correctness/security/reuse findings, `category: "mechanical"` for in-scope RuboCop offenses (reported, not fixed, unless fixes were explicitly requested), `category: "convention"` for Phase B judgment calls, including its own needless-wrapper-method checks, and `category: "out-of-scope"` for anything real but outside this PR's actual diff (from any phase) — plus a short note on which convention docs were read, whether fixes were requested or this was report-only, and how many RuboCop loop iterations ran if fixes were applied.
+A single `ReportFindings` call covering all phases: `category: "general"` for Phase 0's correctness/security/reuse findings, `category: "mechanical"` for in-scope RuboCop offenses (reported, not fixed, unless fixes were explicitly requested), `category: "convention"` for Phase B judgment calls, including its own needless-wrapper-method checks, `category: "approach"` for Phase C's verdict (always present: either "smallest complete shape" or up to three smaller alternatives), and `category: "out-of-scope"` for anything real but outside this PR's actual diff (from any phase) — plus a short note on which convention docs were read, whether fixes were requested or this was report-only, and how many RuboCop loop iterations ran if fixes were applied.
 
 If `ReportFindings` is not available in the current environment, emit one markdown table with the same columns instead: `severity | category | file:line | summary | failure scenario | suggested fix`, most-severe-first, followed by the same note.
 
@@ -49,3 +51,4 @@ If `ReportFindings` is not available in the current environment, emit one markdo
 - ../_shared/code-review-phases/phase-0-general-review.md
 - ../_shared/code-review-phases/phase-a-rubocop-loop.md
 - ../_shared/code-review-phases/phase-b-conventions.md
+- ../_shared/code-review-phases/phase-c-approach.md
