@@ -1,0 +1,21 @@
+## Approach Rule
+
+Picking up a ticket starts with alternatives, not with the first idea. Before any file is
+edited for a new ticket or a "how should we implement X" question:
+
+1. Invoke the `ruby-approach-plan` skill. It reads the touched code and writes at least
+   three materially different approaches — **reuse** (no schema change; the columns,
+   helpers and entry points that already exist), **extend** (additive migration +
+   backfill + later destructive PR), **restructure** (blank-page design) — each on the
+   ponytail ladder, checked against the written conventions (`CONVENTIONS_PATH`,
+   `docs/conventions/` or the `@`-imports in this file), with what it cannot do and the
+   reviewer's first objection.
+2. Invoke the `approach-judge` agent on that set; adopt what it adds.
+3. Ask the developer to pick. The recommendation is the lowest complete rung. Write the
+   chosen approach and the rejected ones into the PR description under
+   "Approaches considered".
+
+On every review (`ruby-code-review`, `ruby-pr-review`), Phase C runs `approach-judge` on
+the diff and reports its verdict as `category: "approach"` with the other findings. A FAIL
+(a smaller complete approach would remove a migration, a backfill or a new class) is
+surfaced before the PR is called ready.

@@ -32,6 +32,16 @@ reviewer wanted, and it was visible on day one once the alternatives were writte
 ## Contents
 
 ```
+agents/
+  approach-judge.md        Judge 4 as an agent: plans (three kinds or FAIL) and diffs (smaller complete shape?)
+  plan-judge.md            completeness: infra, end-to-end path, error paths, config, verification
+  taste-judge.md           over-engineering, scope creep, surgical changes
+  test-judge.md            are the tests meaningful, not just green
+  impl-judge.md            is everything in the plan actually wired
+commands/
+  plan.md                  /plan: three approaches → approach-judge → plan-judge → taste-judge → phases → judges on the diff
+templates/
+  CLAUDE.md.snippet        the Approach Rule, to paste or append with --claude-md
 skills/
   ruby-approach-plan/      "plan ENG-123" — three approaches, comparison, pick before coding
   ruby-code-review/        "review this" on local changes
@@ -47,7 +57,7 @@ rubocop/
   rubocop.yml.example                                    config snippet
 bin/rubocop_diff_check     diff-scoped CI gate, no LLM involved
 examples/conventions/      the file shape Phase B expects
-install.sh
+install.sh                 --global | <repo> [--with-rubocop] [--claude-md]
 ```
 
 ## Install
@@ -56,19 +66,30 @@ install.sh
 git clone https://github.com/dan1d/ruby-review-judges.git
 cd ruby-review-judges
 
-# skills only
-./install.sh /path/to/your-ruby-repo
+# New machine: everything, for every repo you open (skills, judge agents, /plan)
+./install.sh --global          # then restart Claude Code once
 
-# skills + custom cop + CI script
-./install.sh /path/to/your-ruby-repo --with-rubocop
+# One repo only (lands in <repo>/.claude, commit it or not — your call)
+./install.sh /path/to/your-ruby-repo
+./install.sh /path/to/your-ruby-repo --with-rubocop --claude-md
 ```
+
+`--global` is the "new laptop, new company" path: clone, run it, and the whole process is
+there before the first ticket — the three-approach planning skill, the four-judge review, the
+judge agents (`approach-judge`, `plan-judge`, `taste-judge`, `test-judge`, `impl-judge`) and the
+`/plan` command that chains them. Nothing in it names a company or a project; the only thing it
+reads from the repo is the conventions folder.
 
 Then, in your repo:
 
 1. Put your team conventions somewhere Phase B can find them (see below), or point
    `CONVENTIONS_PATH` at them.
-2. If you installed the cop, merge `rubocop/rubocop.yml.example` into your `.rubocop.yml`.
-3. Open Claude Code in the repo and say `review this` or `review PR #123`.
+2. `--claude-md` appends the Approach Rule (`templates/CLAUDE.md.snippet`) to the repo's
+   `CLAUDE.md`, so a new ticket starts with three approaches without anyone remembering to ask.
+   Skip it when the repo's `CLAUDE.md` is shared and you only want this on your machine: the
+   global install plus the snippet in `~/.claude/CLAUDE.md` does the same privately.
+3. If you installed the cop, merge `rubocop/rubocop.yml.example` into your `.rubocop.yml`.
+4. Open Claude Code in the repo and say `plan ENG-123`, `review this` or `review PR #123`.
 
 ## Where conventions live
 
